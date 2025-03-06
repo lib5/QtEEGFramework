@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>968</width>
+    <height>496</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>1</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QCustomPlot" name="graph" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QScrollBar" name="hScrollBar">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>968</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menufile">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="actOpenFile"/>
+    <addaction name="actRectFile"/>
+   </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>预处理</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>特征提取</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>可视化</string>
+    </property>
+   </widget>
+   <addaction name="menufile"/>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
+  </widget>
+  <action name="actOpenFile">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="accessories-dictionary">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>打开文件</string>
+   </property>
+  </action>
+  <action name="actiont">
+   <property name="text">
+    <string>功率谱图</string>
+   </property>
+  </action>
+  <action name="actiontest">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/zoomin.png</normaloff>:/image/image/zoomin.png</iconset>
+   </property>
+   <property name="text">
+    <string>拉伸</string>
+   </property>
+   <property name="toolTip">
+    <string>加速</string>
+   </property>
+  </action>
+  <action name="action">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/zoomout.png</normaloff>:/image/image/zoomout.png</iconset>
+   </property>
+   <property name="text">
+    <string>收缩</string>
+   </property>
+   <property name="toolTip">
+    <string>减速</string>
+   </property>
+  </action>
+  <action name="actionopenBCI">
+   <property name="text">
+    <string>openBCI</string>
+   </property>
+  </action>
+  <action name="prtsc">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/cut.png</normaloff>:/image/image/cut.png</iconset>
+   </property>
+   <property name="text">
+    <string>截图</string>
+   </property>
+  </action>
+  <action name="action0_1s">
+   <property name="text">
+    <string>0.1s</string>
+   </property>
+  </action>
+  <action name="action0_5s">
+   <property name="text">
+    <string>0.5s</string>
+   </property>
+  </action>
+  <action name="action1s">
+   <property name="text">
+    <string>1s</string>
+   </property>
+  </action>
+  <action name="action2">
+   <property name="text">
+    <string>2s</string>
+   </property>
+  </action>
+  <action name="action5s">
+   <property name="text">
+    <string>5s</string>
+   </property>
+  </action>
+  <action name="action10s">
+   <property name="text">
+    <string>10s</string>
+   </property>
+  </action>
+  <action name="action20s">
+   <property name="text">
+    <string>20s</string>
+   </property>
+  </action>
+  <action name="actStart">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/start.png</normaloff>:/image/image/start.png</iconset>
+   </property>
+   <property name="text">
+    <string>开始</string>
+   </property>
+  </action>
+  <action name="actStop">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/pause.png</normaloff>:/image/image/pause.png</iconset>
+   </property>
+   <property name="text">
+    <string>暂停</string>
+   </property>
+  </action>
+  <action name="actStepforward">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/fast_forward.png</normaloff>:/image/image/fast_forward.png</iconset>
+   </property>
+   <property name="text">
+    <string>快进</string>
+   </property>
+  </action>
+  <action name="actStepback">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/fast_rewind.png</normaloff>:/image/image/fast_rewind.png</iconset>
+   </property>
+   <property name="text">
+    <string>后退</string>
+   </property>
+  </action>
+  <action name="actSpeedup">
+   <property name="text">
+    <string>加速</string>
+   </property>
+  </action>
+  <action name="actSpeeddown">
+   <property name="text">
+    <string>减速</string>
+   </property>
+  </action>
+  <action name="actTimeJump">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/image/image/time.png</normaloff>:/image/image/time.png</iconset>
+   </property>
+   <property name="text">
+    <string>时间跳转</string>
+   </property>
+  </action>
+  <action name="graphViewSet">
+   <property name="text">
+    <string>视图设置</string>
+   </property>
+  </action>
+  <action name="actConnect">
+   <property name="text">
+    <string>连接</string>
+   </property>
+  </action>
+  <action name="actionPsd">
+   <property name="text">
+    <string>傅里叶变换</string>
+   </property>
+  </action>
+  <action name="actionl">
+   <property name="text">
+    <string>脑热图</string>
+   </property>
+  </action>
+  <action name="actRectFile">
+   <property name="text">
+    <string>最近打开的文件</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header location="global">qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
+ <connections/>
+</ui>

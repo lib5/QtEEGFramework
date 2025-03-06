@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/image">
+        <file>image/cut.png</file>
+        <file>image/fast_forward.png</file>
+        <file>image/fast_rewind.png</file>
+        <file>image/openfile.png</file>
+        <file>image/openfolder.png</file>
+        <file>image/pause.png</file>
+        <file>image/start.png</file>
+        <file>image/time.png</file>
+        <file>image/zoomin.png</file>
+        <file>image/zoomout.png</file>
+    </qresource>
+</RCC>
