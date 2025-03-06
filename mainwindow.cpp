@@ -1020,8 +1020,7 @@ void MainWindow::on_actionClosefile_triggered()
     }
 
     nowFile.clear();  // 清空当前文件路径
-    total_samples = 0;
-    SamplingRate = 0;
+
 
     // 清空图表数据
     ui->graph->clearGraphs();
@@ -1035,7 +1034,8 @@ void MainWindow::on_actionClosefile_triggered()
     }
 
     ui->graph->axisRect()->removeAxis(topAxis);
-    topAxis = nullptr; // 避免野指针
+
+     topAxis = ui->graph->axisRect()->addAxis(QCPAxis::atTop);
 
     // 初始化 UI
     initTimeLabelAndBack();
