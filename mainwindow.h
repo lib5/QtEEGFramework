@@ -39,7 +39,12 @@ private:
     //edf点极名称列表
     QVector<QPair<int,QString> > nameList;
 
-     QString nowFile;
+    QString nowFile;
+    QStringList recentFiles; // 存储最近打开的文件路径
+    const int maxRecentFiles = 5; // 限制最多显示的文件数
+    QMenu *recentMenu; // 最近打开的文件菜单
+    void updateRecentFilesMenu(); // 更新菜单
+    void addRecentFile(const QString &filePath);//添加文件名
 
     int nowcnt=0;
     //设置左下角时间
@@ -117,7 +122,7 @@ private:
 
     void initNameList();
 
-
+    void addMenu();
 
 
     //打开edf文件，返回edf路径
@@ -153,7 +158,7 @@ private slots:
     //开始功能
     void on_actStart_triggered();
 
-
+    void on_actionClosefile_triggered();
 
     //停止
     void on_actStop_triggered();

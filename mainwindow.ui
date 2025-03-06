@@ -58,32 +58,32 @@
      <height>25</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menufile">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>文件</string>
     </property>
     <addaction name="actOpenFile"/>
-    <addaction name="actRectFile"/>
+    <addaction name="actionClosefile"/>
    </widget>
-   <widget class="QMenu" name="menu">
+   <widget class="QMenu" name="menuPrecess">
     <property name="title">
      <string>预处理</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menu_2">
+   <widget class="QMenu" name="menuFeather">
     <property name="title">
      <string>特征提取</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menu_3">
+   <widget class="QMenu" name="menuVisible">
     <property name="title">
      <string>可视化</string>
     </property>
    </widget>
-   <addaction name="menufile"/>
-   <addaction name="menu"/>
-   <addaction name="menu_2"/>
-   <addaction name="menu_3"/>
+   <addaction name="menuFile"/>
+   <addaction name="menuPrecess"/>
+   <addaction name="menuFeather"/>
+   <addaction name="menuVisible"/>
   </widget>
   <action name="actOpenFile">
    <property name="enabled">
@@ -253,6 +253,11 @@
   <action name="actRectFile">
    <property name="text">
     <string>最近打开的文件</string>
+   </property>
+  </action>
+  <action name="actionClosefile">
+   <property name="text">
+    <string>关闭文件</string>
    </property>
   </action>
  </widget>

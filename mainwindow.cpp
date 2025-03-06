@@ -20,10 +20,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-
-
-
-
 }
 
 MainWindow::~MainWindow()
@@ -43,6 +39,55 @@ void MainWindow::initNameList()
     }
     nameList=namelist;
 //    viewconfig=config;
+
+}
+//添加最近文件
+void MainWindow::addRecentFile(const QString &filePath)
+{
+    QSettings settings("YourCompany", "YourApp"); // QSettings 存储最近文件
+    recentFiles = settings.value("recentFiles").toStringList();
+
+    recentFiles.removeAll(filePath); // 避免重复
+    recentFiles.prepend(filePath);   // 插入到最前面
+
+    while (recentFiles.size() > maxRecentFiles) {
+        recentFiles.removeLast();
+    }
+
+    settings.setValue("recentFiles", recentFiles); // 保存到 QSettings
+
+    updateRecentFilesMenu(); // 更新菜单
+}
+
+
+void MainWindow::updateRecentFilesMenu()
+{
+    recentMenu->clear(); // 清空菜单
+
+    QSettings settings("YourCompany", "YourApp"); // 使用 QSettings 存储
+    recentFiles = settings.value("recentFiles").toStringList(); // 读取存储的文件列表
+
+    // 确保最多只存储 maxRecentFiles 个文件
+    while (recentFiles.size() > maxRecentFiles) {
+        recentFiles.removeLast();
+    }
+
+    for (const QString &filePath : recentFiles) {
+        QAction *action = new QAction(filePath, this);
+        connect(action, &QAction::triggered, this, [=]() {
+            on_actionClosefile_triggered();
+            plotLine(filePath); // 调用你的打开文件函数
+        });
+        recentMenu->addAction(action);
+    }
+}
+
+void MainWindow::addMenu()
+{
+
+    recentMenu = ui->menuFile->addMenu(tr("最近打开文件")); // 添加到“文件”菜单
+    updateRecentFilesMenu(); // 更新菜单
+
 
 }
 
@@ -72,117 +117,116 @@ void loadRemainingData(edf_hdr_struct* hdr, int initialRecords, std::vector<std:
 }
 
 
-void MainWindow::plotLine(QString edfPath)
-{
-    nowFile=edfPath;
-    edfclose_file(hdr->handle);
-    //1.校验edfPath是否为edf路径
-    char path[1024]={0};
-    memcpy(path,edfPath.toUtf8().data(), strlen(edfPath.toUtf8().data()));
-    //2.读取文件数据
-    int n=edfopen_file_readonly(path, hdr, EDFLIB_READ_ALL_ANNOTATIONS);
-    //3.读取判断
-    if(n!=0){
-        QMessageBox::information(this,"错误",edfPath+"读取失败！无法绘制波形图",QMessageBox::Ok,QMessageBox::NoButton);
-        return ;
-    }
-    //初始化相关edf数据
-    int signalCount = hdr->edfsignals;
-    initNameList();
-    //edf开始时间
-    *startTime=QDateTime(QDate(hdr->startdate_year,hdr->startdate_month,hdr->startdate_day),
-                         QTime(hdr->starttime_hour,hdr->starttime_minute,hdr->starttime_second,hdr->starttime_subsecond));
+//void MainWindow::plotLine(QString edfPath) loadRemainingData
+//{
+//    nowFile=edfPath;
+//    edfclose_file(hdr->handle);
+//    //1.校验edfPath是否为edf路径
+//    char path[1024]={0};
+//    memcpy(path,edfPath.toUtf8().data(), strlen(edfPath.toUtf8().data()));
+//    //2.读取文件数据
+//    int n=edfopen_file_readonly(path, hdr, EDFLIB_READ_ALL_ANNOTATIONS);
+//    //3.读取判断
+//    if(n!=0){
+//        QMessageBox::information(this,"错误",edfPath+"读取失败！无法绘制波形图",QMessageBox::Ok,QMessageBox::NoButton);
+//        return ;
+//    }
+//    //初始化相关edf数据
+//    int signalCount = hdr->edfsignals;
+//    initNameList();
+//    //edf开始时间
+//    *startTime=QDateTime(QDate(hdr->startdate_year,hdr->startdate_month,hdr->startdate_day),
+//                         QTime(hdr->starttime_hour,hdr->starttime_minute,hdr->starttime_second,hdr->starttime_subsecond));
 
-    //nowTime=startTime;
-    nowTime=new QDateTime(startTime->addMSecs(0));
-    duration=hdr->datarecord_duration*1e-7;
-    //采样率
-    SamplingRate=hdr->signalparam[0].smp_in_datarecord / duration;
-    //划分界面并加入图像
-    avg=0;
-    for (int i = 0; i < signalCount; i++) {
-        edf_param_struct signalParam = hdr->signalparam[i];
-        if(i==0)
-        total_samples = signalParam.smp_in_datarecord * hdr->datarecords_in_file;
-        int maxn=signalParam.dig_max;
-        int minn=signalParam.dig_min;
-        avg=avg+maxn-minn;
-    }
-    ui->graph->clearGraphs();
-    avg=avg/(6*signalCount);
+//    //nowTime=startTime;
+//    nowTime=new QDateTime(startTime->addMSecs(0));
+//    duration=hdr->datarecord_duration*1e-7;
+//    //采样率
+//    SamplingRate=hdr->signalparam[0].smp_in_datarecord / duration;
+//    //划分界面并加入图像
+//    avg=0;
+//    for (int i = 0; i < signalCount; i++) {
+//        edf_param_struct signalParam = hdr->signalparam[i];
+//        if(i==0)
+//        total_samples = signalParam.smp_in_datarecord * hdr->datarecords_in_file;
+//        int maxn=signalParam.dig_max;
+//        int minn=signalParam.dig_min;
+//        avg=avg+maxn-minn;
+//    }
+//    ui->graph->clearGraphs();
+//    avg=avg/(6*signalCount);
 
-    //ui->text->append(QString::number(hdr->file_duration));
-    for(int i=0;i<hdr->edfsignals;i++){
-        ui->graph->addGraph();
-        ui->graph->graph(i)->setName(hdr->signalparam[i].label);
-    }
-    ui->graph->addGraph();
-    ui->graph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    ui->graph->axisRect()->setRangeDrag(Qt::Horizontal);
-    ui->graph->axisRect()->setRangeZoom(Qt::Horizontal);
+//    //ui->text->append(QString::number(hdr->file_duration));
+//    for(int i=0;i<hdr->edfsignals;i++){
+//        ui->graph->addGraph();
+//        ui->graph->graph(i)->setName(hdr->signalparam[i].label);
+//    }
+//    ui->graph->addGraph();
+//    ui->graph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+//    ui->graph->axisRect()->setRangeDrag(Qt::Horizontal);
+//    ui->graph->axisRect()->setRangeZoom(Qt::Horizontal);
 
 
 
-    //初始化
-    ui->graph->xAxis->setRange(0,hdr->signalparam[0].smp_in_datarecord);
-    topAxis->setRange(0,hdr->signalparam[0].smp_in_datarecord);
-    qDebug()<<hdr->datarecords_in_file*hdr->signalparam[0].smp_in_datarecord;
-    //拖动条范围
+//    //初始化
+//    ui->graph->xAxis->setRange(0,hdr->signalparam[0].smp_in_datarecord);
+//    topAxis->setRange(0,hdr->signalparam[0].smp_in_datarecord);
+//    qDebug()<<hdr->datarecords_in_file*hdr->signalparam[0].smp_in_datarecord;
+//    //拖动条范围
 
-    ui->hScrollBar->setRange(0,total_samples);
+//    ui->hScrollBar->setRange(0,total_samples);
 
-    //初始化x,y 大小为一秒的采样数字；刻度，标签大小为信号数量
-    QVector<double> x(total_samples),y(total_samples);
-    ticks.resize(hdr->edfsignals);
+//    //初始化x,y 大小为一秒的采样数字；刻度，标签大小为信号数量
+//    QVector<double> x(total_samples),y(total_samples);
+//    ticks.resize(hdr->edfsignals);
 
-    QVector<QString> labels(hdr->edfsignals);
-    QSharedPointer<QCPAxisTickerText> textTicker(new QCPAxisTickerText);
+//    QVector<QString> labels(hdr->edfsignals);
+//    QSharedPointer<QCPAxisTickerText> textTicker(new QCPAxisTickerText);
 
-    duration=hdr->datarecords_in_file*(hdr->datarecord_duration/10000000);
-    //ui->text->append(QString::number(hdr->signalparam[0].smp_in_file));
-    qDebug()<<"记录的样点数"<<hdr->signalparam[0].smp_in_file;
-    //ui->text->append(QString::number(hdr->datarecords_in_file));
+//    duration=hdr->datarecords_in_file*(hdr->datarecord_duration/10000000);
+//    //ui->text->append(QString::number(hdr->signalparam[0].smp_in_file));
+//    qDebug()<<"记录的样点数"<<hdr->signalparam[0].smp_in_file;
+//    //ui->text->append(QString::number(hdr->datarecords_in_file));
 
-    //设置曲线颜色
-    QVector<QColor> colors = { QColor(255, 0, 0),      // 亮红
-                              QColor(0, 150, 255),    // 亮蓝
-                              QColor(0, 200, 0),      // 亮绿
-                              QColor(255, 0, 255),    // 亮紫
-                              QColor(0, 255, 255),    // 亮青
-                              QColor(255, 165, 0),    // 亮橙
-                              QColor(255, 255, 0),    // 亮黄
-                              QColor(160, 32, 240),   // 亮紫（不同）
-                              QColor(255, 105, 180),  // 亮粉色
-                              QColor(30, 144, 255) }; // 亮深蓝
+//    //设置曲线颜色
+//    QVector<QColor> colors = { QColor(255, 0, 0),      // 亮红
+//                              QColor(0, 150, 255),    // 亮蓝
+//                              QColor(0, 200, 0),      // 亮绿
+//                              QColor(255, 0, 255),    // 亮紫
+//                              QColor(0, 255, 255),    // 亮青
+//                              QColor(255, 165, 0),    // 亮橙
+//                              QColor(255, 255, 0),    // 亮黄
+//                              QColor(160, 32, 240),   // 亮紫（不同）
+//                              QColor(255, 105, 180),  // 亮粉色
+//                              QColor(30, 144, 255) }; // 亮深蓝
 
-    qDebug()<<"总记录数"<<total_samples;
-    ui->graph->yAxis->setVisible(true);
+//    qDebug()<<"总记录数"<<total_samples;
+//    ui->graph->yAxis->setVisible(true);
 
-    maxTimeGap =(qint64)(total_samples/SamplingRate*1000);
-    //edf结束时间
-    endTime=new QDateTime(startTime->addMSecs(maxTimeGap));
+//    maxTimeGap =(qint64)(total_samples/SamplingRate*1000);
+//    //edf结束时间
+//    endTime=new QDateTime(startTime->addMSecs(maxTimeGap));
+
+
+
 
 //    // 假设有 23 个极点
-//    const int numPoles =hdr->edfsignals;
-
+//    const int numPoles = hdr->edfsignals;
 
 //    // 为每个极点分配一个 allData
-//    std::vector<std::vector<int>> allData(numPoles, std::vector<int>(total_samples));
-
+//    std::vector<std::vector<int>> allData(numPoles);
 
 //    // 定义每次加载的记录数
-//    const int initialRecords = 5; // 初始加载 10 个记录
+
 //    const int totalRecords = hdr->datarecords_in_file;
-
-
-
 
 //    // 预分配内存
 //    for (int i = 0; i < hdr->edfsignals; i++) {
+//        size_t total_samples = hdr->signalparam[i].smp_in_datarecord * totalRecords;
+//        allData[i].resize(total_samples);
 //        x.resize(total_samples);
 //        y.resize(total_samples);
 //    }
-
 
 //    // 初始加载部分记录
 //    for (int i = 0; i < hdr->edfsignals; i++) {
@@ -228,102 +272,140 @@ void MainWindow::plotLine(QString edfPath)
 //        labelItems.append(labelItem);
 //    }
 
-//    timeLabel->setText(startTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
+//    // 初始设置 x 轴范围
+//    ui->graph->xAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord*recordcnt);
+//    topAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord*recordcnt  / SamplingRate);
+
+//    // 设置 y 轴范围
 //    double minTick = *std::min_element(ticks.begin(), ticks.end());
 //    double maxTick = *std::max_element(ticks.begin(), ticks.end());
-
 //    ui->graph->yAxis->setRange(maxTick + 50, minTick - 50); // 反转 y 轴方向
-
-//    // 初始设置 x 轴范围qDebug()<<"显示多少" <<hdr->signalparam[0].smp_in_datarecord <<" "<<hdr->datarecord_duration;
-//    ui->graph->xAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord* recordcnt);
-
-
-//    topAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord* recordcnt/SamplingRate);
-//    ui->graph->axisRect()->setMargins(QMargins(0, 0, 0, 0)); // 设置边距为 0
+//    timeLabel->setText(nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
+//    // 重绘图
 //    ui->graph->yAxis->grid()->setPen(QPen(QColor(150, 150, 150), 1.2, Qt::SolidLine));
 //    ui->graph->yAxis->setTicker(textTicker);
 //    ui->graph->yAxis->setTicks(true);
-//    ui->graph->setUpdatesEnabled(true);
+
 //    ui->graph->replot();
 
-
-
-
-//    // 给曲线设置颜色
-//    QPen pen;
-//    pen.setWidth(1);  // 线条宽度
-
-//     ui->graph->setUpdatesEnabled(false);
-
-
+//    // 加载剩余数据
 //    for (int i = 0; i < hdr->edfsignals; i++) {
 //        edf_param_struct signalParam = hdr->signalparam[i];
-//        // 计算该通道的总样本数
-//        size_t total_samples = signalParam.smp_in_datarecord * hdr->datarecords_in_file;
+//        size_t samples_per_record = signalParam.smp_in_datarecord;
 
-//        // 一次性分配足够的空间来存储整个通道的数据
-//        std::vector<int> readBuff(total_samples);
-
-//        // 一次性读取整个通道的数字信号样本
-//        edfseek(hdr->handle, i, 0, EDFSEEK_SET);  // 设置读取位置到该通道的开头
-//        edfread_digital_samples(hdr->handle, i, total_samples, readBuff.data());
+//        // 加载剩余记录
+//        for (int recordIdx = initialRecords; recordIdx < totalRecords; recordIdx++) {
+//        size_t offset = recordIdx * samples_per_record;
+//        edfseek(hdr->handle, i, offset, EDFSEEK_SET);
+//        edfread_digital_samples(hdr->handle, i, samples_per_record, allData[i].data() + offset);
+//        }
 
 //        int temp = i * avg / 4;
 
 //        // 准备绘图数据
-//        for (int j = 0; j < total_samples; j++) {
+//        for (int j = 0; j < totalRecords * samples_per_record; j++) {
 //        x[j] = j;
-//        y[j] = readBuff[j] - temp;
+//        y[j] = allData[i][j] - temp;
 //        }
 
-
-//        pen.setColor(colors[i % colors.size()]);  // 颜色
-//        ui->graph->graph(i)->setPen(pen);
-
+//        // 更新曲线数据
 //        ui->graph->graph(i)->setData(x, y, true);
-//        ticks[i] = -temp;
-//        labels[i] = signalParam.label;
-
-//        textTicker->addTick(ticks[i], labels[i]);
-
-//        // 添加文本标签
-//        QCPItemText *labelItem = new QCPItemText(ui->graph);
-//        labelItem->setFont(QFont("Arial", 8));
-//        labelItem->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-
-//        labelItem->position->setCoords(topAxis->range().lower, ticks[i] + 25); // 设定位置
-//        labelItem->setText(labels[i]);
-//        labelItem->setColor(colors[i % colors.size()]);
-
-
-
-//        labelItems.append(labelItem);
 //    }
 
+//    timeLabel->setText( nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
+//    // 启用水平和垂直拖拽
+//    ui->graph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
 
+//    // 允许垂直方向的拖拽
+//    ui->graph->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
 
-//    qDebug() << "Ticks:";
-
-
-
-
-
-//
-//    ui->graph->setUpdatesEnabled(true);
+//    // 重绘图
 //    ui->graph->replot();
 
 
-    // 假设有 23 个极点
+//}
+
+
+
+void MainWindow::plotLine(QString edfPath)
+{   //初始化标签
+    ui->graph->clearItems();
+    timeLabel = new QCPItemText(ui->graph); // 重新创建 timeLabel
+    timeLabel->setPositionAlignment(Qt::AlignBottom | Qt::AlignRight); // 设置对齐方式为右下角
+    timeLabel->position->setType(QCPItemPosition::ptAxisRectRatio);    // 使用轴矩形比例
+    timeLabel->position->setCoords(1, 1);                              // 设置位置为右下角
+    timeLabel->setText("Initial Text");                                // 设置文本内容
+    timeLabel->setFont(QFont(font().family(), 9));                    // 设置字体大小为 12
+    timeLabel->setColor(Qt::white);                                    // 设置字体颜色为白色
+    timeLabel->setPadding(QMargins(4, 4, 4, 4));                       // 设置内边距
+    timeLabel->setBrush(QBrush(QColor(50, 50, 50))); // 设置背景颜色为白色
+    nowFile = edfPath;
+    edfclose_file(hdr->handle);
+
+    char path[1024] = {0};
+    memcpy(path, edfPath.toUtf8().data(), strlen(edfPath.toUtf8().data()));
+
+    int n = edfopen_file_readonly(path, hdr, EDFLIB_READ_ALL_ANNOTATIONS);
+    if (n != 0) {
+        QMessageBox::information(this, "错误", edfPath + "读取失败！无法绘制波形图", QMessageBox::Ok, QMessageBox::NoButton);
+        return;
+    }
+    ui->hScrollBar->setValue(0);
+    int signalCount = hdr->edfsignals;
+    initNameList();
+
+    *startTime = QDateTime(QDate(hdr->startdate_year, hdr->startdate_month, hdr->startdate_day),
+                           QTime(hdr->starttime_hour, hdr->starttime_minute, hdr->starttime_second, hdr->starttime_subsecond));
+    nowTime = new QDateTime(startTime->addMSecs(0));
+    duration = hdr->datarecord_duration * 1e-7;
+    SamplingRate = hdr->signalparam[0].smp_in_datarecord / duration;
+
+    avg = 0;
+    for (int i = 0; i < signalCount; i++) {
+        edf_param_struct signalParam = hdr->signalparam[i];
+        if (i == 0)
+            total_samples = signalParam.smp_in_datarecord * hdr->datarecords_in_file;
+        int maxn = signalParam.dig_max;
+        int minn = signalParam.dig_min;
+        avg += maxn - minn;
+    }
+    avg = avg / (6 * signalCount);
+
+    ui->graph->clearGraphs();
+    for (int i = 0; i < hdr->edfsignals; i++) {
+        ui->graph->addGraph();
+        ui->graph->graph(i)->setName(hdr->signalparam[i].label);
+    }
+
+    ui->graph->addGraph();
+    ui->graph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->graph->axisRect()->setRangeDrag(Qt::Horizontal);
+    ui->graph->axisRect()->setRangeZoom(Qt::Horizontal);
+
+    ui->graph->xAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord);
+    topAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord);
+    ui->hScrollBar->setRange(0, total_samples);
+
+    QVector<double> x(total_samples), y(total_samples);
+    ticks.resize(hdr->edfsignals);
+    QVector<QString> labels(hdr->edfsignals);
+    QSharedPointer<QCPAxisTickerText> textTicker(new QCPAxisTickerText);
+
+    duration = hdr->datarecords_in_file * (hdr->datarecord_duration / 10000000);
+
+    QVector<QColor> colors = {
+        QColor(255, 0, 0), QColor(0, 150, 255), QColor(0, 200, 0),
+        QColor(255, 0, 255), QColor(0, 255, 255), QColor(255, 165, 0),
+        QColor(255, 255, 0), QColor(160, 32, 240), QColor(255, 105, 180),
+        QColor(30, 144, 255)};
+
+    maxTimeGap = (qint64)(total_samples / SamplingRate * 1000);
+    endTime = new QDateTime(startTime->addMSecs(maxTimeGap));
+
     const int numPoles = hdr->edfsignals;
-
-    // 为每个极点分配一个 allData
     std::vector<std::vector<int>> allData(numPoles);
-
-    // 定义每次加载的记录数
-
     const int totalRecords = hdr->datarecords_in_file;
 
-    // 预分配内存
     for (int i = 0; i < hdr->edfsignals; i++) {
         size_t total_samples = hdr->signalparam[i].smp_in_datarecord * totalRecords;
         allData[i].resize(total_samples);
@@ -331,41 +413,34 @@ void MainWindow::plotLine(QString edfPath)
         y.resize(total_samples);
     }
 
-    // 初始加载部分记录
+    // **1. 仅加载部分数据用于初次绘制**
+    int initialRecords = std::min(5, totalRecords);  // 只加载前5个记录
     for (int i = 0; i < hdr->edfsignals; i++) {
         edf_param_struct signalParam = hdr->signalparam[i];
         size_t samples_per_record = signalParam.smp_in_datarecord;
 
-        // 加载初始记录
         for (int recordIdx = 0; recordIdx < initialRecords; recordIdx++) {
-        size_t offset = recordIdx * samples_per_record;
-        edfseek(hdr->handle, i, offset, EDFSEEK_SET);
-        edfread_digital_samples(hdr->handle, i, samples_per_record, allData[i].data() + offset);
+            size_t offset = recordIdx * samples_per_record;
+            edfseek(hdr->handle, i, offset, EDFSEEK_SET);
+            edfread_digital_samples(hdr->handle, i, samples_per_record, allData[i].data() + offset);
         }
 
         int temp = i * avg / 4;
-
-        // 准备绘图数据
         for (int j = 0; j < initialRecords * samples_per_record; j++) {
-        x[j] = j;
-        y[j] = allData[i][j] - temp;
+            x[j] = j;
+            y[j] = allData[i][j] - temp;
         }
 
-        // 设置曲线颜色
         QPen pen;
         pen.setWidth(1);
         pen.setColor(colors[i % colors.size()]);
         ui->graph->graph(i)->setPen(pen);
-
-        // 设置曲线数据
         ui->graph->graph(i)->setData(x, y, true);
 
-        // 设置刻度标签
         ticks[i] = -temp;
         labels[i] = signalParam.label;
         textTicker->addTick(ticks[i], labels[i]);
 
-        // 添加文本标签
         QCPItemText *labelItem = new QCPItemText(ui->graph);
         labelItem->setFont(QFont("Arial", 8));
         labelItem->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -375,10 +450,8 @@ void MainWindow::plotLine(QString edfPath)
         labelItems.append(labelItem);
     }
 
-    // 初始设置 x 轴范围
-    ui->graph->xAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord*recordcnt);
-    topAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord*recordcnt  / SamplingRate);
-
+    ui->graph->xAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord * initialRecords);
+    topAxis->setRange(0, hdr->signalparam[0].smp_in_datarecord * initialRecords / SamplingRate);
     // 设置 y 轴范围
     double minTick = *std::min_element(ticks.begin(), ticks.end());
     double maxTick = *std::max_element(ticks.begin(), ticks.end());
@@ -388,45 +461,40 @@ void MainWindow::plotLine(QString edfPath)
     ui->graph->yAxis->grid()->setPen(QPen(QColor(150, 150, 150), 1.2, Qt::SolidLine));
     ui->graph->yAxis->setTicker(textTicker);
     ui->graph->yAxis->setTicks(true);
-
+     ui->graph->yAxis->setVisible(true);
+    ui->graph->setInteractions(QCP::iRangeDrag); // 仅允许拖动
     ui->graph->replot();
 
-    // 加载剩余数据
-    for (int i = 0; i < hdr->edfsignals; i++) {
-        edf_param_struct signalParam = hdr->signalparam[i];
-        size_t samples_per_record = signalParam.smp_in_datarecord;
+    // **2. 在后台线程中加载剩余数据**
+    QtConcurrent::run([=]() {
+        for (int i = 0; i < hdr->edfsignals; i++) {
+            edf_param_struct signalParam = hdr->signalparam[i];
+            size_t samples_per_record = signalParam.smp_in_datarecord;
 
-        // 加载剩余记录
-        for (int recordIdx = initialRecords; recordIdx < totalRecords; recordIdx++) {
-        size_t offset = recordIdx * samples_per_record;
-        edfseek(hdr->handle, i, offset, EDFSEEK_SET);
-        edfread_digital_samples(hdr->handle, i, samples_per_record, allData[i].data() + offset);
+            for (int recordIdx = initialRecords; recordIdx < totalRecords; recordIdx++) {
+                size_t offset = recordIdx * samples_per_record;
+                edfseek(hdr->handle, i, offset, EDFSEEK_SET);
+                edfread_digital_samples(hdr->handle, i, samples_per_record,
+                                        const_cast<int*>(allData[i].data() + offset));
+
+
+            }
+
+            int temp = i * avg / 4;
+            QVector<double> x_local(totalRecords * samples_per_record), y_local(totalRecords * samples_per_record);
+            for (int j = 0; j < totalRecords * samples_per_record; j++) {
+                x_local[j] = j;
+                y_local[j] = allData[i][j] - temp;
+            }
+
+            QMetaObject::invokeMethod(this, [=]() {
+                ui->graph->graph(i)->setData(x_local, y_local, true);
+                ui->graph->replot();
+            }, Qt::QueuedConnection);
         }
-
-        int temp = i * avg / 4;
-
-        // 准备绘图数据
-        for (int j = 0; j < totalRecords * samples_per_record; j++) {
-        x[j] = j;
-        y[j] = allData[i][j] - temp;
-        }
-
-        // 更新曲线数据
-        ui->graph->graph(i)->setData(x, y, true);
-    }
-
-    timeLabel->setText( nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
-    // 启用水平和垂直拖拽
-    ui->graph->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
-
-    // 允许垂直方向的拖拽
-    ui->graph->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
-
-    // 重绘图
-    ui->graph->replot();
-
-
+    });
 }
+
 
 void MainWindow::getAvg()
 {
@@ -451,9 +519,10 @@ void MainWindow::init()
     //初始化时间标签与背景
     initTimeLabelAndBack();
 
-    //添加状态栏
+    //添加状态栏已经菜单
     addStatus();
 
+    addMenu();
 
     //edf存储的结构体
     hdr=new edf_hdr_struct;
@@ -523,6 +592,7 @@ void MainWindow::init()
 
 void MainWindow::initTimeLabelAndBack()
 {
+    ui->hScrollBar->setValue(0);
     //设置时间
     startTime = new QDateTime();
      nowTime = new QDateTime(QDateTime::currentDateTime());
@@ -598,6 +668,9 @@ void MainWindow::initTimeLabelAndBack()
     ui->graph->axisRect()->setAutoMargins(QCP::msNone); // 禁用自动边距
 
     ui->graph->axisRect()->setMargins(QMargins(0, 0, 0, 0)); // 设置边距为 0
+    ui->graph->setInteractions(QCP::iRangeDrag); // 仅允许拖动
+
+    ui->graph->replot();
 
     // 确保第一个垂直网格线与窗口左边缘重合
 
@@ -701,22 +774,13 @@ void MainWindow::on_actOpenFile_triggered()
 {
     //1.获取edf文件路径
     QString edfPath=openEdf();
+
 //    prependToRecentFiles(edfPath);
 //    ui->text->append(edfPath);
     if(edfPath.isEmpty()){
         return;
     }
-    ui->graph->clearItems();
-    timeLabel = new QCPItemText(ui->graph); // 重新创建 timeLabel
-    timeLabel->setPositionAlignment(Qt::AlignBottom | Qt::AlignRight); // 设置对齐方式为右下角
-    timeLabel->position->setType(QCPItemPosition::ptAxisRectRatio);    // 使用轴矩形比例
-    timeLabel->position->setCoords(1, 1);                              // 设置位置为右下角
-    timeLabel->setText("Initial Text");                                // 设置文本内容
-    timeLabel->setFont(QFont(font().family(), 9));                    // 设置字体大小为 12
-    timeLabel->setColor(Qt::white);                                    // 设置字体颜色为白色
-    timeLabel->setPadding(QMargins(4, 4, 4, 4));                       // 设置内边距
-    timeLabel->setBrush(QBrush(QColor(50, 50, 50))); // 设置背景颜色为白色
-
+    addRecentFile(edfPath); // 添加到最近文件列表
 
     //2.绘制图像
     plotLine(edfPath);
@@ -775,7 +839,7 @@ void MainWindow::horzScrollBarChanged(int value)
 
     // 更新 nowTime（相对 startTime 的偏移）
     *nowTime = startTime->addMSecs(timeOffset);
-
+    if(!hdr->handle)
     // 更新 timeLabel
     timeLabel->setText(nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
 
@@ -787,6 +851,7 @@ void MainWindow::horzScrollBarChanged(int value)
 //更新标签
 void MainWindow::setLabelItemsPositions()
 {
+    if(!hdr->handle)
     timeLabel->setText(nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
     if (labelItems.size() != ticks.size()) {
         qWarning() << "setLabelItemsPositions: labelItems and ticks sizes do not match!";
@@ -853,8 +918,7 @@ void  MainWindow::wheelEvent(QWheelEvent *event) {
     if (nowTime->toMSecsSinceEpoch()  < startTime->toMSecsSinceEpoch() ) {
         *nowTime = *startTime; // 如果超出范围，则设为 startTime
     }
-
-    // 更新 timeLabel
+    if(!hdr->handle)
     timeLabel->setText( nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
 
     // 刷新视图
@@ -874,6 +938,10 @@ void MainWindow::getNowTime(){
 //打开时间跳转对话框，并且初始化时间跳转对话框
 void MainWindow::on_actTimeJump_triggered()
 {
+    if (hdr->handle) { // 这里修正了 if 条件，应该是如果文件未打开才弹出警告
+        QMessageBox::warning(this, "警告", "请先打开文件！");
+        return;
+    }
     timeJump *timeJumpWidget=new timeJump();
     connect(this,SIGNAL(initTimeJump(QDateTime,QDateTime)),timeJumpWidget,SLOT(initTime(QDateTime,QDateTime)));
     connect(timeJumpWidget,SIGNAL(confirmTime(QDateTime)),this,SLOT(changeTime(QDateTime)));
@@ -942,6 +1010,45 @@ void MainWindow::on_actStart_triggered() {
     if (!dataTimer->isActive()) {
         dataTimer->start(1000 / 60); // 定时器间隔设置为 16.67 毫秒
     }
+}
+
+void MainWindow::on_actionClosefile_triggered()
+{
+    if (hdr && hdr->handle >= 0) {
+        edfclose_file(hdr->handle);  // 关闭 EDF 文件
+        hdr->handle = -1;  // 避免重复关闭
+    }
+
+    nowFile.clear();  // 清空当前文件路径
+    total_samples = 0;
+    SamplingRate = 0;
+
+    // 清空图表数据
+    ui->graph->clearGraphs();
+
+
+    // 5. 删除时间标签 timeLabel 并重置指针
+    if (timeLabel) {
+        ui->graph->removeItem(timeLabel);
+
+        timeLabel = nullptr;
+    }
+
+    ui->graph->axisRect()->removeAxis(topAxis);
+    topAxis = nullptr; // 避免野指针
+
+    // 初始化 UI
+    initTimeLabelAndBack();
+
+
+    // 释放所有 label 资源
+    for (QCPItemText* labelItem : labelItems) {
+        ui->graph->removeItem(labelItem);
+    }
+    labelItems.clear();
+
+
+
 }
 
 //播放的槽函数
