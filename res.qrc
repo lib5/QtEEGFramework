@@ -10,5 +10,6 @@
         <file>image/time.png</file>
         <file>image/zoomin.png</file>
         <file>image/zoomout.png</file>
+        <file>image/app.ico</file>
     </qresource>
 </RCC>

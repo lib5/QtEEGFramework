@@ -11,7 +11,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // 设置窗口标题
+    this->setWindowTitle("EEGFRAME");
 
+    // 设置窗口图标
+    this->setWindowIcon(QIcon(":/image/app.ico"));
     init();//初始化绑定信号与槽
     setFocusPolicy(Qt::StrongFocus);
 
@@ -339,6 +343,8 @@ void MainWindow::plotLine(QString edfPath)
     timeLabel->setColor(Qt::white);                                    // 设置字体颜色为白色
     timeLabel->setPadding(QMargins(4, 4, 4, 4));                       // 设置内边距
     timeLabel->setBrush(QBrush(QColor(50, 50, 50))); // 设置背景颜色为白色
+    //播放速度
+    timeSpeed=1.0/60;
     nowFile = edfPath;
     edfclose_file(hdr->handle);
 
@@ -463,6 +469,8 @@ void MainWindow::plotLine(QString edfPath)
     ui->graph->yAxis->setTicks(true);
      ui->graph->yAxis->setVisible(true);
     ui->graph->setInteractions(QCP::iRangeDrag); // 仅允许拖动
+     // 允许垂直方向的拖拽
+    ui->graph->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
     ui->graph->replot();
 
     // **2. 在后台线程中加载剩余数据**
