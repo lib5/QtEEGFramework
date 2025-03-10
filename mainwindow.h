@@ -5,6 +5,8 @@
 #include "qcustomplot.h"
 #include "timejump.h"
 #include <QMainWindow>
+#include "pluginmanager.h"
+#include "infowidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -39,6 +41,12 @@ private:
     //edf点极名称列表
     QVector<QPair<int,QString> > nameList;
 
+    QVector<QColor> colors = {
+                              QColor(255, 0, 0), QColor(0, 150, 255), QColor(0, 200, 0),
+                              QColor(255, 0, 255), QColor(0, 255, 255), QColor(255, 165, 0),
+                              QColor(255, 255, 0), QColor(160, 32, 240), QColor(255, 105, 180),
+                              QColor(30, 144, 255)};
+
     QString nowFile;
     QStringList recentFiles; // 存储最近打开的文件路径
     const int maxRecentFiles = 5; // 限制最多显示的文件数
@@ -49,6 +57,12 @@ private:
     int nowcnt=0;
     //设置左下角时间
     void setTime(QDateTime time);
+
+     QVector<QVector<double>> table;
+    std::vector<std::vector<int>> allData;
+    PluginManager *pluginManager;
+    QMap<QString, QAction*> pluginActions;
+    QString pluginPath;
 
     //读取edf文件数据总样点数
     int total_samples ;
@@ -118,6 +132,12 @@ private:
     void horzScrollBarChanged(int value);
     void replotLine();
 
+    //插件管理
+    void loadPlugins();
+    void unloadPlugins();
+    void processTableWithPlugin(IEEGPlugin* plugin);
+    void processTableWithVisualizationPlugin(IEEGPlugin* plugin);
+
 
 
     void initNameList();
@@ -143,6 +163,9 @@ private:
 
     //绘制槽函数，用于播放
     void timeToPlot();
+
+    //int->double
+    void convertAllDataToTable();
 
 
 
@@ -170,6 +193,13 @@ private slots:
     void on_actStepforward_triggered();
     //后退
     void on_actStepback_triggered();
+
+    // 插件相关
+    void onPluginActionTriggered();
+    void onTableProcessed(const QVector<QVector<double>>& result);
+
+    //显示文件的基本信息
+    void on_actionInfo_triggered();
 
 
 

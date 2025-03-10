@@ -6,7 +6,7 @@
 #include <QString>
 #include <QDir>
 #include <QPluginLoader>
-#include "itableplugin.h"
+#include "iEEGplugin.h"
 
 class PluginManager : public QObject {
     Q_OBJECT
@@ -22,10 +22,10 @@ public:
     void unloadPlugins();
 
     // 获取插件列表
-    QMap<QString, ITablePlugin*> getPlugins() const;
+    QMap<QString, IEEGPlugin*> getPlugins() const;
 
     // 获取指定插件
-    ITablePlugin* getPlugin(const QString& pluginName) const;
+    IEEGPlugin* getPlugin(const QString& pluginName) const;
 
     // 获取插件目录
     QString getPluginDir() const;
@@ -39,7 +39,7 @@ signals:
     void errorOccurred(const QString& errorMessage);
 
 private:
-    QMap<QString, ITablePlugin*> plugins;          // 插件名称 -> 插件实例
+    QMap<QString, IEEGPlugin*> plugins;          // 插件名称 -> 插件实例
     QMap<QString, QPluginLoader*> pluginLoaders;   // 插件名称 -> 插件加载器
     QString pluginDir;                             // 插件目录
 };

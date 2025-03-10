@@ -23,7 +23,7 @@ void PluginManager::loadPlugins(const QString& pluginDir) {
         QObject* pluginInstance = pluginLoader->instance();
 
         if (pluginInstance) {
-            ITablePlugin* tablePlugin = qobject_cast<ITablePlugin*>(pluginInstance);
+            IEEGPlugin* tablePlugin = qobject_cast<IEEGPlugin*>(pluginInstance);
             if (tablePlugin) {
                 QString pluginName = tablePlugin->pluginName();
                 plugins.insert(pluginName, tablePlugin);
@@ -44,7 +44,7 @@ void PluginManager::loadPlugins(const QString& pluginDir) {
 
 void PluginManager::unloadPlugins() {
     foreach (const QString& pluginName, plugins.keys()) {
-        ITablePlugin* plugin = plugins.value(pluginName);
+        IEEGPlugin* plugin = plugins.value(pluginName);
         QPluginLoader* pluginLoader = pluginLoaders.value(pluginName);
 
         plugin->destroy();
@@ -59,12 +59,12 @@ void PluginManager::unloadPlugins() {
 }
 
 
-QMap<QString, ITablePlugin*> PluginManager::getPlugins() const {
+QMap<QString, IEEGPlugin*> PluginManager::getPlugins() const {
     return plugins;
 }
 
 
-ITablePlugin* PluginManager::getPlugin(const QString& pluginName) const {
+IEEGPlugin* PluginManager::getPlugin(const QString& pluginName) const {
     return plugins.value(pluginName, nullptr);
 }
 

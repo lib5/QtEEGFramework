@@ -12,10 +12,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // 设置窗口标题
-    this->setWindowTitle("EEGFRAME");
-
+    this->setWindowTitle("EEGFRAME"); 
     // 设置窗口图标
     this->setWindowIcon(QIcon(":/image/app.ico"));
+    pluginManager = new PluginManager(this);
+    pluginPath="../QtEEGFramework/plugins";
+    // 加载插件
+    loadPlugins();
     init();//初始化绑定信号与槽
     setFocusPolicy(Qt::StrongFocus);
 
@@ -90,8 +93,14 @@ void MainWindow::addMenu()
 {
 
     recentMenu = ui->menuFile->addMenu(tr("最近打开文件")); // 添加到“文件”菜单
-    updateRecentFilesMenu(); // 更新菜单
 
+    QAction *actionInfo = new QAction(tr("文件信息"), this);
+    ui->menuFile->addAction(actionInfo);
+
+    // 连接信号和槽
+    connect(actionInfo, &QAction::triggered, this, &MainWindow::on_actionInfo_triggered);
+
+    updateRecentFilesMenu(); // 更新菜单
 
 }
 
@@ -399,17 +408,15 @@ void MainWindow::plotLine(QString edfPath)
 
     duration = hdr->datarecords_in_file * (hdr->datarecord_duration / 10000000);
 
-    QVector<QColor> colors = {
-        QColor(255, 0, 0), QColor(0, 150, 255), QColor(0, 200, 0),
-        QColor(255, 0, 255), QColor(0, 255, 255), QColor(255, 165, 0),
-        QColor(255, 255, 0), QColor(160, 32, 240), QColor(255, 105, 180),
-        QColor(30, 144, 255)};
+
 
     maxTimeGap = (qint64)(total_samples / SamplingRate * 1000);
     endTime = new QDateTime(startTime->addMSecs(maxTimeGap));
 
     const int numPoles = hdr->edfsignals;
-    std::vector<std::vector<int>> allData(numPoles);
+    // 初始化 allData
+    allData.resize(numPoles);
+
     const int totalRecords = hdr->datarecords_in_file;
 
     for (int i = 0; i < hdr->edfsignals; i++) {
@@ -1134,65 +1141,94 @@ bool MainWindow::MainWindow::eventFilter(QObject *obj, QEvent *event)
 }
 
 
-
-
-
-/*
-
-
-
-
-
-
-//重绘函数，与时间跳转相适配
-void MainWindow::plotLine3(){
-    ui->horizontalScrollBar->setSingleStep(ui->graph->xAxis->range().size()/16);
-    int leftPos=ui->graph->xAxis->range().center()-ui->graph->xAxis->range().size()/2;
-    if(leftPos<0)leftPos=0;
-    int rightPos=ui->graph->xAxis->range().center()+ui->graph->xAxis->range().size()/2;
-    if(rightPos<=0){
-        qDebug()<<rightPos;
-        return;
-    }
-    int lenth=rightPos-leftPos+1;
-    if(lenth>buffSize){
-        //TODO 提示太密集
-        return;
-    }
-    for(int i=0;i<hdr->edfsignals;i++){
-        edfseek(hdr->handle,i,leftPos,EDFSEEK_SET);
-        QVector<double> x(lenth),y(lenth);
-        int flag=edfread_digital_samples(hdr->handle, i, lenth,readBuff);
-        //int flag=edfread_physical_samples(hdr->handle, i, lenth,readBuff);
-        double temp=i*avg/4;
-        for (int j = 0;j < flag;j++) {
-            x[j]=j+leftPos;
-            y[j]=*(readBuff + j)*fix-temp;
+void MainWindow::convertAllDataToTable() {
+    table.clear();
+    for (const auto& intRow : allData) {
+        QVector<double> doubleRow;
+        for (int value : intRow) {
+            doubleRow.append(static_cast<double>(value)); // int 转 double
         }
-        //ui->graph->graph(i)->data().data()->clear();
-        ui->graph->graph(i)->setData(x,y,true);
+        table.append(doubleRow);
     }
+}
 
-    //更新时间Label
-    getNowTime();
-    if (!timeLabel) {
-        qDebug() << "timeLabel is null!";
+
+
+void MainWindow::loadPlugins() {
+    pluginManager->loadPlugins(pluginPath);
+    QMap<QString, IEEGPlugin*> plugins = pluginManager->getPlugins();
+
+    foreach (const QString& pluginName, plugins.keys()) {
+        IEEGPlugin* plugin = plugins.value(pluginName);
+        qDebug() << "加载插件: " << plugin->pluginName();
+
+        QAction* action = new QAction(pluginName, this);
+        connect(action, &QAction::triggered, this, &MainWindow::onPluginActionTriggered);
+        pluginActions.insert(pluginName, action);
+
+        // 根据插件类别放入不同的菜单
+        if (plugin->pluginCategory() == "预处理") {
+            ui->menuPrecess->addAction(action);
+        } else if (plugin->pluginCategory() == "特征提取") {
+            ui->menuFeather->addAction(action);
+        } else if (plugin->pluginCategory() == "可视化") {
+            ui->menuVisible->addAction(action);
+        }
+    }
+}
+
+void MainWindow::unloadPlugins() {
+    pluginManager->unloadPlugins();
+}
+
+void MainWindow::processTableWithPlugin(IEEGPlugin* plugin) {
+    convertAllDataToTable();
+    QVector<QVector<double>> result = plugin->processEEGData(table);
+    onTableProcessed(result);
+}
+
+void MainWindow::onPluginActionTriggered() {
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (!action) return;
+
+    IEEGPlugin* plugin = pluginManager->getPlugin(action->text());
+    if (!plugin) return;
+    if(hdr->handle) return ;
+
+
+    if (plugin->pluginCategory() == "预处理" || plugin->pluginCategory() == "特征提取") {
+        processTableWithPlugin(plugin);
+    } else if (plugin->pluginCategory() == "可视化") {
+        processTableWithVisualizationPlugin(plugin);
+    }
+}
+
+void MainWindow::onTableProcessed(const QVector<QVector<double>>& result) {
+    QString resultStr;
+    for (const QVector<double>& row : result) {
+        for (double value : row) {
+            resultStr += QString::number(value) + " ";
+        }
+        resultStr += "\n";
+    }
+    QMessageBox::information(this, "EEG 处理结果", resultStr);
+}
+
+void MainWindow::on_actionInfo_triggered()
+{
+    if(hdr->handle)
+    {
+        QMessageBox::warning(this, "Error", "请先打开文件");
         return;
     }
-    timeLabel->setText(nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
-    ui->text->append(nowTime->toString("yyyy-MM-dd hh:mm:ss:zzz"));
-    ui->text->append(QString::number(ui->graph->xAxis->range().center()));
-    ui->text->append(QString::number(hdr->datarecords_in_file*hdr->signalparam[0].smp_in_datarecord));
-    ui->text->append(QString::number(duration));
-    ui->graph->replot();
-}
 
-void MainWindow::on_graphViewSet_triggered()
-{
-    //graphViewSettings *gvs=new graphViewSettings(nameList);
-    graphViewSettings *gvs=new graphViewSettings(viewconfig);
-    gvs->show();
-    connect(gvs,SIGNAL(viewConfigSave(viewConfig)),this,SLOT(changeConfig(viewConfig)));
-}
+    // 创建 infowidget 窗口
+    infowidget *infoWindow = new infowidget();
+    infoWindow->initHdr( hdr, nowFile); // 传递 EDF 文件头信息
+    infoWindow->show(); // 显示窗口
 
-*/
+
+}
+void MainWindow::processTableWithVisualizationPlugin(IEEGPlugin* plugin) {
+    plugin->previewEEGData(table);
+}
